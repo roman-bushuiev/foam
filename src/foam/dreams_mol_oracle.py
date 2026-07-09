@@ -120,6 +120,11 @@ class _DreaMSMolOracle(MolOracle):
             self.mol = mol
             self.mol_smiles = Chem.MolToSmiles(mol)
             self.mol_inchikey = Chem.MolToInchiKey(mol)
+            # get_seed_smiles_tani drops seeds matching mol_inchikey OR smi_inchikey; mol is already
+            # stereo-stripped so both are the stereo-free InChIKey (== 2D-connectivity drop for our
+            # stereo-free S4 seed pool). _ICEBERGOracle sets both; mirror it so the inherited seed
+            # logic finds smi_inchikey.
+            self.smi_inchikey = self.mol_inchikey
             self.nbits = 2048
             self.get_morgan_fp = partial(morgan_fp, nbits=2048)
             self.morgan_fp = self.get_morgan_fp(mol)
