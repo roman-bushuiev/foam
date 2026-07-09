@@ -15,7 +15,10 @@ import hashlib
 import sys, os
 
 import foam.utils as utils
-from ms_pred import common
+try:
+    from ms_pred import common          # ICEBERG stack; absent in the DreaMS-Mol v3 (modern-torch) env
+except Exception:
+    common = None
 import numpy as np
 import torch
 import h5py
@@ -27,12 +30,15 @@ from rdkit.Chem import AllChem, DataStructs, rdqueries
 from rdkit.Chem import rdFingerprintGenerator
 from rdkit.Chem.rdMolDescriptors import CalcMolFormula
 # load SA oracle from rdkit
-try: 
+try:
     sys.path.append(os.path.join(os.environ['CONDA_PREFIX'],'share','RDKit','Contrib'))
     from SA_Score import sascorer
-except ImportError:
-    # rdkit installed with pip
-    from rdkit.Contrib.SA_Score import sascorer
+except Exception:
+    try:
+        # rdkit installed with pip
+        from rdkit.Contrib.SA_Score import sascorer
+    except Exception:
+        sascorer = None   # SA unavailable (e.g. v3 env); only DreaMSMol_SA_ / Cos_SA_ oracles need it
 
 import wandb
 from sklearn.neighbors import KernelDensity
@@ -73,9 +79,22 @@ def build_oracle(spec_id, spec_lib_dir, spec_lib_label, criteria, oracle_type = 
         oracle_type: Choice of oracle (Tani_, Cos_, Cos_SA)
 
 
-    Builds an oracle from a spectrum identifier, using the label and HDF5 files as lookup for information. 
+    Builds an oracle from a spectrum identifier, using the label and HDF5 files as lookup for information.
 
     """
+    if str(oracle_type).startswith("DreaMSMol"):
+        # DreaMS-Mol v3 cross-encoder oracle (FOAM + DreaMS-Mol v3). Reads the query spectrum from
+        # MassSpecGym1.5.tsv by spec_id inside the oracle, so it needs neither the .ms spec HDF5 nor
+        # ms_pred.common here -> the v3 (modern-torch, no-ms_pred) env can build it. Bake only the
+        # spec-specific fields (name, GT smiles) into the partial; the rest come from runtime kwargs.
+        from foam.dreams_mol_oracle import _DreaMSMolOracle, _DreaMSMolWithSAOracle
+        lab = pd.read_csv(spec_lib_label, sep="\t")
+        row = lab[lab["spec"] == spec_id]
+        smiles = row["smiles"].values[0] if len(row) else None
+        base = dict(name=spec_id, smiles=smiles)
+        add_oracle_to_registry(f"DreaMSMol_{spec_id}", partial(_DreaMSMolOracle, **base))
+        add_oracle_to_registry(f"DreaMSMol_SA_{spec_id}", partial(_DreaMSMolWithSAOracle, **base))
+        return f"{oracle_type}{spec_id}"      # e.g. "DreaMSMol_SA_<spec_id>" -> the registry key above
     if ".hdf5" in spec_lib_dir:
         spec_h5 = common.HDF5Dataset(spec_lib_dir) 
         spec_path = spec_h5.read_str(f'{spec_id}.ms').split('\n')
