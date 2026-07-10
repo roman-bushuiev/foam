@@ -942,12 +942,15 @@ class GraphGAFCOptimizer(base.OptimizerBase):
                 logging.info("Logging seed statistics below.")
             output_stats = self._get_stats_log()
             output_stats["Meta"] = {"Calls Made": self.calls_made}
-            if self.oracle.smi: # also validation-mode metrics 
+            if self.oracle.smi: # also validation-mode metrics
+                # .get: these target-comparison keys are only produced when the oracle has a
+                # forward-model self-score (self_iceberg_scores); the DreaMS-Mol v3 oracle has none
+                # (target reward-hacking is computed offline from the v3-scored buffers instead).
                 if output_stats["InchiKeyMatch"]["InchiKeyMatch"]:
-                    output_stats["%_topk_better_decoys_over_seen_target"] = output_stats["NDSBestMol"][f"top_10_{self.oracle.criteria}_better_than_target"]
+                    output_stats["%_topk_better_decoys_over_seen_target"] = output_stats["NDSBestMol"].get(f"top_10_{self.oracle.criteria}_better_than_target")
                 else:
-                    output_stats["%_topk_better_decoys_but_target_unseen"] = output_stats["NDSBestMol"][f"top_10_{self.oracle.criteria}_better_than_target"]
-                output_stats["better_decoy_seen_already"] = output_stats["NDSBestMol"][f"better_{self.oracle.criteria}_decoy"]
+                    output_stats["%_topk_better_decoys_but_target_unseen"] = output_stats["NDSBestMol"].get(f"top_10_{self.oracle.criteria}_better_than_target")
+                output_stats["better_decoy_seen_already"] = output_stats["NDSBestMol"].get(f"better_{self.oracle.criteria}_decoy")
             out_str = yaml.dump(output_stats)
             logging.info(f"Batch statistics after {self.calls_made} calls:\n {out_str}")
             # Submit to wandb
