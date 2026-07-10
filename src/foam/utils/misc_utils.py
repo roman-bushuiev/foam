@@ -65,9 +65,12 @@ def setup_run(save_dir: str, wandb_mode: str = "disable",
     if wandb_mode == "offline":
         os.environ["WANDB_MODE"] = "offline"
 
-    settings=wandb.Settings(
-        x_stats_sampling_interval=2.0  # sample every 2 seconds instead of 15
-    )
+    try:
+        settings = wandb.Settings(
+            x_stats_sampling_interval=2.0  # sample every 2 seconds instead of 15
+        )
+    except Exception:
+        settings = wandb.Settings()        # wandb 0.17.x rejects x_stats_sampling_interval
     if wandb_mode == "online" or wandb_mode == "offline":
         if kwargs.get('spec_lib_dir') and kwargs.get('spec_lib_dir') == '/home/mrunali/data/':
             tags = [kwargs['spec_id'], criteria] + tags
