@@ -1,0 +1,44 @@
+# FOAM + DreaMS-Mol v3 (headline): v3 cross-encoder as the in-loop GA fitness, seeded from the 409.8M
+# S4 pool. Identical to the production FOAM config (msg_4m_prod.yaml) EXCEPT the scorer:
+#   oracle-type Cos_SA_ (ICEBERG + SA)  ->  DreaMSMol_SA_ (v3 + the SAME SA 2nd objective).
+# Everything else (multiobj Pareto, budget, population, mutation, seed selection) is UNCHANGED, so the
+# only variable vs the FOAM-410M ICEBERG baseline is the primary scorer -> clean apples-to-apples.
+#
+# PATHS ARE NOT SET HERE (portable across clusters): the submit script passes --seed-lib-dir /
+# --spec-lib-dir / --spec-lib-label / --save-dir on the CLI (which override the config), and the v3
+# model ckpt/config/tsv/device come from the DREAMSMOL_V3_* env vars read by dreams_mol_oracle. No
+# ICEBERG gen/inten ckpts (the v3 oracle never loads ms_pred.dag_pred).
+seed: 42
+num-workers: 16
+device: cpu              # FOAM's own device knob is ICEBERG-only; v3 uses DREAMSMOL_V3_DEVICE (=cuda)
+gpu-workers: 0
+batch-size: 32
+wandb-mode: offline      # REQUIRED: FOAM has unguarded wandb.run.summary writes (disable -> crash)
+wandb-project: foam-410m-v3
+ignore-precursor-peak: True
+use-multi-node: False
+max-nodes: 100
+
+oracle-type: DreaMSMol_SA_
+criteria: entropy         # unused by v3 (kept only so shared logging/attrs resolve)
+multiobj: True
+eval-names: ['NDSBestMol', 'TopNDSScore', 'NDSFronts', 'InchiKeyMatch']
+
+max-seed-sim: 1.0         # exclude only the exact (stereo-free) target InChIKey from seeds
+
+top-k: [1, 5, 10]
+
+max-calls: 1500
+keep-population: 20000
+population-size: 200
+offspring-size: 600
+mutation_rate: 0.20
+num-islands: 1
+threshold: 0.0
+starting-seed-size: -1    # use all formula-matched seeds
+
+selection-sorting-type: cand_crowding
+parent-tiebreak: cand_crowding
+truncate: True
+
+tags: ['dreamsmol-v3', 'seed-s4-410m', 'headline']
