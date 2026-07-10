@@ -1028,7 +1028,8 @@ class _ICEBERGOracle(MolOracle):
                             device = self.iceberg_kwargs["device"]
                     else:
                         device = "cpu"
-                    torch.cuda.set_device(device)
+                    if str(device) != "cpu":          # CPU port: torch.cuda.set_device errors on cpu
+                        torch.cuda.set_device(device)
                     self.iceberg_model.to(device)
                     if "instrument" in batch:
 
@@ -1189,13 +1190,22 @@ class _ICEBERGOracle(MolOracle):
 
         def pred_single_smile(smi):
             torch.set_num_threads(1)
+            smi = str(smi)
+            # CPU port: adduct/instrument may have been wrapped into 1-element lists by an earlier
+            # batched call (in-place mutation); joint_model.predict_mol wraps scalars itself in the
+            # single-mol path, so pass scalars to avoid double-wrapping ("too many dimensions 'str'").
+            single_kwargs = dict(self.iceberg_kwargs)
+            for _k in ("adduct", "instrument"):
+                _v = single_kwargs.get(_k)
+                if isinstance(_v, (list, tuple)) and len(_v) > 0:
+                    single_kwargs[_k] = _v[0]
             with torch.no_grad():
                 pred_specs = {}
                 for eng in self.colli_engs:
                     try:
                         full_output = self.iceberg_model.predict_mol(smi,
                                                                      collision_eng=float(eng),
-                                                                     **self.iceberg_kwargs)
+                                                                     **single_kwargs)
                     except RuntimeError as err:
                         print(err)
                         return None
@@ -1313,7 +1323,8 @@ class _ICEBERGOracle(MolOracle):
                                 device = self.iceberg_kwargs["device"]
                         else:
                             device = "cpu"
-                        torch.cuda.set_device(device)
+                        if str(device) != "cpu":          # CPU port: torch.cuda.set_device errors on cpu
+                            torch.cuda.set_device(device)
                         self.iceberg_model.to(device)
                         if "instrument" in batch:
 
