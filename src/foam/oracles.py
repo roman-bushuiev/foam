@@ -458,7 +458,8 @@ class MolOracle(Oracle, ABC):
         formula = self.conditional_info().get("formula")
         fp = self.conditional_info().get("morgan_fp")
         using_diffms_seeds = False
-        
+        using_extra_seeds = False   # init: the `formula in h5obj` path (no extra_seeds) never set it -> UnboundLocalError
+
         if self.seed_lib_dir.is_file(): 
             seed_file = self.seed_lib_dir
             h5obj = common.HDF5Dataset(seed_file)
