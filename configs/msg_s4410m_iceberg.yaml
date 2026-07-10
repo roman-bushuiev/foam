@@ -1,0 +1,42 @@
+# FOAM-410M (ICEBERG baseline for the 2x2): identical to msg_4m_prod.yaml EXCEPT the seed pool is the
+# 409.8M S4 pool (same seed as FOAM + DreaMS-Mol v3) and max-calls matches the v3 subset (500). This is
+# the "search-by-ICEBERG, rank-by-ICEBERG" arm; the only difference vs FOAM + DreaMS-Mol v3 is the scorer.
+seed: 42
+num-workers: 6
+device: cpu
+gpu-workers: 0
+batch-size: 32
+wandb-mode: offline
+wandb-project: foam-410m-iceberg
+gen-model-ckpt: /flash/project_465003029/rbushuie/foam_data/msg_gen.ckpt
+inten-model-ckpt: /flash/project_465003029/rbushuie/foam_data/msg_inten_cosine.ckpt
+ignore-precursor-peak: True
+use-multi-node: False
+max-nodes: 100
+
+oracle-type: Cos_SA_
+criteria: entropy
+multiobj: True
+eval-names: ['NDSBestMol', 'TopNDSScore', 'NDSFronts', 'InchiKeyMatch']
+spec-lib-dir: /scratch/project_465003029/rbushuie/denovo_staging/foam/data/spec-datasets/msg/spec_files.hdf5
+spec-lib-label: /scratch/project_465003029/rbushuie/denovo_staging/foam/data/spec-datasets/msg/labels_withev_validinst.tsv
+
+seed-lib-dir: /scratch/project_465003029/rbushuie/foam_v3_lumi/seed_s4410m.hdf5
+
+max-seed-sim: 1.0
+top-k: [1, 5, 10]
+
+max-calls: 500
+keep-population: 20000
+population-size: 200
+offspring-size: 600
+mutation_rate: 0.20
+num-islands: 1
+threshold: 0.0
+starting-seed-size: -1
+
+selection-sorting-type: cand_crowding
+parent-tiebreak: cand_crowding
+truncate: True
+
+tags: ['iceberg', 'seed-s4-410m', 'baseline-2x2']
