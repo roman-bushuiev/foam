@@ -43,7 +43,10 @@ except Exception:
 import wandb
 from sklearn.neighbors import KernelDensity
 from scipy.signal import argrelextrema
-from myopic_mces import MCES
+try:
+    from myopic_mces import MCES              # older re-exporting versions
+except ImportError:
+    from myopic_mces.myopic_mces import MCES  # myopic_mces>=1.0 (empty __init__; MCES in submodule)
 import os, sys, contextlib
 import pubchempy as pcp
 

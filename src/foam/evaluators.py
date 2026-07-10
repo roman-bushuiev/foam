@@ -12,7 +12,10 @@ import wandb
 import pandas as pd
 import plotly.express as px
 from rdkit.Chem.rdFMCS import FindMCS
-from myopic_mces import MCES
+try:
+    from myopic_mces import MCES
+except ImportError:
+    from myopic_mces.myopic_mces import MCES
 import time
 
 evaluator_registry = {}
