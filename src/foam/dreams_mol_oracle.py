@@ -130,6 +130,24 @@ class _DreaMSMolOracle(MolOracle):
             self.morgan_fp = self.get_morgan_fp(mol)
         self.max_seed_sim = kwargs.get("max_seed_sim", None)
 
+        # --- FOAM evaluator/GA contract attrs (the ICEBERG oracle sets these; v3 provides safe values).
+        # All the ICEBERG spectral-plot branches in evaluators.py are guarded by `self_iceberg_scores`
+        # (None here) and thus skipped; the rest are plain labels/logging. ---
+        self.adduct = kwargs.get("adduct", "[M+H]+")
+        self.secondary = "sa"                # 2nd-objective label (SA), for logging
+        self.self_iceberg_scores = None      # no forward-model self-score -> ICEBERG plot branches skip
+        self.ref_spec_unbinned = None
+        self.self_spec_unbinned = None
+        if mol is not None:
+            self.smi = self.mol_smiles
+            self.formula = self._get_formula()
+            try:
+                self.sa_score_target = 1 - self.score_sa([self.mol]) / 10
+            except Exception:
+                self.sa_score_target = None
+        else:
+            self.smi = self.formula = self.sa_score_target = None
+
         a = _get_v3_assets()
         self._model = a["model"]
         self._mol_transform = a["mol_transform"]
@@ -189,6 +207,11 @@ class _DreaMSMolOracle(MolOracle):
 
     def __call__(self, examples):
         return self.score_batch(examples)
+
+    def pred_unbinned_spec(self, *args, **kwargs):
+        # v3 is a cross-encoder, not a forward model -> no predicted spectrum. Only referenced in
+        # ICEBERG-specific eval plots, which are guarded by self_iceberg_scores (None) and never run.
+        return {}
 
     @staticmethod
     def oracle_name():
